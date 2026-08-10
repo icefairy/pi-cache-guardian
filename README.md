@@ -45,10 +45,10 @@ Per-turn `cacheRead`/`cacheWrite`/`input` is recorded automatically; the `/cache
 ### npm (recommended)
 
 ```bash
-npm install -g pi-cache-guardian
+pi install npm:pi-cache-guardian
 ```
 
-Pi auto-discovers and loads it. No settings changes required.
+Pi auto-installs and loads it. No settings changes required.
 
 ### Direct copy
 

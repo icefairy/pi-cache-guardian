@@ -45,10 +45,10 @@ Pi Agent 有完善的事件系统和扩展 API，但默认没有针对 provider 
 ### npm（推荐）
 
 ```bash
-npm install -g pi-cache-guardian
+pi install npm:pi-cache-guardian
 ```
 
-Pi 自动发现并加载，无需设置变更。
+Pi 自动安装并加载，无需设置变更。
 
 ### 直接复制
 

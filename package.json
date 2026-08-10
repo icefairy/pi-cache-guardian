@@ -1,6 +1,6 @@
 {
   "name": "pi-cache-guardian",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Pi Agent extension that maximizes prompt-cache hit rate and reduces token cost",
   "keywords": [
     "pi-package",
@@ -16,10 +16,10 @@
     "openai",
     "claude"
   ],
-  "homepage": "https://github.com/icefairy/pi-skill-evolution",
+  "homepage": "https://github.com/icefairy/pi-cache-guardian",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/icefairy/pi-skill-evolution.git"
+    "url": "git+https://github.com/icefairy/pi-cache-guardian.git"
   },
   "license": "MIT",
   "author": "icefairy",

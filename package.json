@@ -1,6 +1,6 @@
 {
   "name": "pi-cache-guardian",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Pi Agent extension that maximizes prompt-cache hit rate and reduces token cost",
   "keywords": [
     "pi-package",

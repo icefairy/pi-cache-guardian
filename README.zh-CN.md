@@ -42,18 +42,25 @@ Pi Agent 有完善的事件系统和扩展 API，但默认没有针对 provider 
 
 ## 安装
 
-### 直接复制
+### npm（推荐）
 
 ```bash
-cp extensions/cache-guardian.ts ~/.pi/agent/extensions/
+npm install -g pi-cache-guardian
 ```
 
 Pi 自动发现并加载，无需设置变更。
 
+### 直接复制
+
+```bash
+git clone https://github.com/icessssssssssss/pi-cache-guardian.git
+cp pi-cache-guardian/extensions/cache-guardian.ts ~/.pi/agent/extensions/
+```
+
 ### 环境变量
 
 | 变量 | 默认值 | 说明 |
-|------|--------|------|
+| ------ | -------- | ------ |
 | `PI_CACHE_GUARD_VERBOSE` | `0` | 每轮打印缓存统计到 stderr |
 | `PI_CACHE_GUARD` | `0` | session 结束时启用缓存守护警告 |
 | `PI_CACHE_GUARD_THRESHOLD` | `90` | 缓存守护命中率阈值 |
@@ -85,7 +92,7 @@ Pi 自动发现并加载，无需设置变更。
 ### 稳定段（T3-T10，缓存预热后）
 
 | 场景 | 每轮未命中 | 缓存命中 | 命中率 |
-|------|-----------|---------|-------|
+| ------ | ----------- | --------- | ------- |
 | 无扩展 | 341 | 1024 | 75% |
 | 有扩展 | 201 | 1024 | 84% |
 

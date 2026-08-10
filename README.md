@@ -42,18 +42,25 @@ Per-turn `cacheRead`/`cacheWrite`/`input` is recorded automatically; the `/cache
 
 ## Install
 
-### Direct copy
+### npm (recommended)
 
 ```bash
-cp extensions/cache-guardian.ts ~/.pi/agent/extensions/
+npm install -g pi-cache-guardian
 ```
 
 Pi auto-discovers and loads it. No settings changes required.
 
+### Direct copy
+
+```bash
+git clone https://github.com/icessssssssssss/pi-cache-guardian.git
+cp pi-cache-guardian/extensions/cache-guardian.ts ~/.pi/agent/extensions/
+```
+
 ### Environment variables
 
 | Variable | Default | Description |
-|----------|---------|-------------|
+| ---------- | --------- | ------------- |
 | `PI_CACHE_GUARD_VERBOSE` | `0` | Print per-turn cache stats to stderr |
 | `PI_CACHE_GUARD` | `0` | Enable cache guard warning at session end |
 | `PI_CACHE_GUARD_THRESHOLD` | `90` | Cache guard hit-rate threshold |

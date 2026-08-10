@@ -1,100 +1,102 @@
 # cache-guardian
 
-Pi Agent 扩展：最大化 prompt cache 命中率，减少 token 成本。
+English · [中文文档](./README.zh-CN.md)
 
-Pi Agent 有完善的事件系统和扩展 API，但默认没有针对 provider prompt cache 做优化。当多个扩展在 `before_agent_start` 中注入内容时，system prompt 的字节级漂移会导致缓存前缀完全失效——实测中从 75% 直接崩到 0%。
+A Pi Agent extension that maximizes prompt-cache hit rate and reduces token cost.
 
-`cache-guardian` 解决这一问题，并将 pi-cache-optimizer 和 DeepSeek-Reasonix 中的缓存优化技术整合到一个统一的扩展中。
+Pi Agent has a solid event system and extension API, but does not optimize for provider prompt caching by default. When multiple extensions inject content into the system prompt via `before_agent_start`, byte-level drift in the system prompt breaks the cache prefix entirely — measured in practice as a drop from 75% to 0%.
 
-## 核心机制
+`cache-guardian` solves this and consolidates the cache optimization techniques from pi-cache-optimizer and DeepSeek-Reasonix into a single extension.
 
-### 1. Golden 冻结（最关键）
+## How it works
 
-第一轮完整处理后的 system prompt 捕获为 golden 副本。后续轮次无条件恢复为 golden，确保 system prompt 字节级一致。
+### 1. Golden freeze (most important)
+
+The system prompt, after full chained processing on the first turn, is captured as a golden copy. Every subsequent turn it is unconditionally restored to the golden copy, guaranteeing byte-identical system prompts across the session.
 
 ### 2. Prompt reorder
 
-将 system prompt 中最稳定的内容（自定义提示、工具说明、指导原则、上下文文件、技能索引）排到最前面。Provider 的 prefix 缓存从开头匹配，稳定内容在前越长，命中率越高。
+The most stable content in the system prompt (custom prompt, tool snippets, guidelines, context files, skill index) is lifted to the front. Provider prefix caches match from the start, so the longer the stable content at the front, the higher the hit rate.
 
-### 3. Skills 压缩
+### 3. Skill compression
 
-> 4 个技能时，将 Pi 的 4 行 XML 块（`<name>`/`<description>`/`<location>`）压缩为一行索引。31 个技能时可将 13.3 KB 缩减到 ~1 KB，同时保持模型可发现性。
+With > 4 skills, Pi's 4-line XML block per skill (`<name>`/`<description>`/`<location>`) is compressed into a one-line index. With 31 skills this reduces ~13.3 KB to ~1 KB while preserving model discoverability.
 
 ### 4. Session-overview churn strip
 
-移除 trellis 的 `<session-overview>` 中每轮变化的字段（RECENT COMMITS、Working directory 状态、Line count），让剩余字段成为缓存友好前缀。
+Removes per-turn changing fields in trellis's `<session-overview>` (RECENT COMMITS, Working directory status, Line count), so the remaining fields become a cache-friendly prefix.
 
-### 5. 兼容自动检测
+### 5. Automatic compatibility detection
 
-- OpenAI `prompt_cache_retention` 被 400 拒绝时自动剥离
-- Anthropic TTL 排序被 400 拒绝时自动降级
-- `prompt_cache_key` 注入（OpenAI 兼容接口）
+- Strips `prompt_cache_retention` when rejected with 400 by OpenAI
+- Downgrades Anthropic TTL ordering when rejected with 400
+- Injects `prompt_cache_key` (OpenAI-compatible endpoints)
 
-### 6. 缓存守护
+### 6. Cache guard
 
-`PI_CACHE_GUARD=1` 时，session 结束时聚合命中率低于阈值（默认 90%）则发出警告。
+With `PI_CACHE_GUARD=1`, a warning is emitted at session end if the aggregate hit rate falls below the threshold (default 90%).
 
-### 7. 缓存统计
+### 7. Cache statistics
 
-每轮自动记录 `cacheRead`/`cacheWrite`/`input`，`/cache-guardian` 命令查看完整统计。
+Per-turn `cacheRead`/`cacheWrite`/`input` is recorded automatically; the `/cache-guardian` command shows full statistics.
 
-## 安装
+## Install
 
-### 直接复制
+### Direct copy
 
 ```bash
 cp extensions/cache-guardian.ts ~/.pi/agent/extensions/
 ```
 
-Pi 自动发现并加载，无需设置变更。
+Pi auto-discovers and loads it. No settings changes required.
 
-### 环境变量
+### Environment variables
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `PI_CACHE_GUARD_VERBOSE` | `0` | 每轮打印缓存统计到 stderr |
-| `PI_CACHE_GUARD` | `0` | session 结束时启用缓存守护警告 |
-| `PI_CACHE_GUARD_THRESHOLD` | `90` | 缓存守护命中率阈值 |
-| `PI_CACHE_GUARD_NO_SKILL_COMPRESSION` | `0` | 禁用 skills 压缩 |
-| `PI_CACHE_GUARD_NO_PROMPT_REWRITE` | `0` | 禁用 prompt reorder（仅做冻结） |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PI_CACHE_GUARD_VERBOSE` | `0` | Print per-turn cache stats to stderr |
+| `PI_CACHE_GUARD` | `0` | Enable cache guard warning at session end |
+| `PI_CACHE_GUARD_THRESHOLD` | `90` | Cache guard hit-rate threshold |
+| `PI_CACHE_GUARD_NO_SKILL_COMPRESSION` | `0` | Disable skill compression |
+| `PI_CACHE_GUARD_NO_PROMPT_REWRITE` | `0` | Disable prompt reorder (freeze only) |
 
-## 命令
+## Commands
 
 ```
-/cache-guardian          # 显示当前 session 缓存统计
-/cache-guardian disable  # 禁用扩展（本进程，重启后恢复）
-/cache-guardian enable   # 重新启用
-/cache-guardian reset    # 重置所有统计和兼容状态
+/cache-guardian          # Show current session cache statistics
+/cache-guardian disable  # Disable extension (current process; restored on restart)
+/cache-guardian enable   # Re-enable
+/cache-guardian reset    # Reset all statistics and compatibility state
 ```
 
-## 测试结论
+## Measured results
 
-### 测试方法
+### Method
 
-10 轮"读文件"对话，模型 `agentrium/deepseek-v4-flash`，关闭 compaction 和 retry。同一脚本分别用无扩展和有扩展运行，从每轮 assistant 消息的 `usage` 字段提取 `cacheRead`/`cacheWrite`/`input`。
+A 10-turn read-file conversation on `agentrium/deepseek-v4-flash`, with compaction and retry disabled. The same script runs with and without the extension, extracting `cacheRead`/`cacheWrite`/`input` from each turn's assistant message `usage` field.
 
-### 结果
+### Aggregates
 
-| 场景 | 未命中 | 缓存命中 | 总输入 | 聚合命中率 |
-|------|--------|----------|--------|-----------|
-| 无扩展 | 5256 | 8192 | 13448 | 61% |
-| 有扩展 | 3967 | 8192 | 12159 | 67% |
+| Scenario | Uncached | Cache-read | Total input | Aggregate hit% |
+|----------|----------|------------|-------------|----------------|
+| Without | 5256 | 8192 | 13448 | 61% |
+| With | 3967 | 8192 | 12159 | 67% |
 
-### 稳定段（T3-T10，缓存预热后）
+### Stable segment (T3-T10, after cache warm-up)
 
-| 场景 | 每轮未命中 | 缓存命中 | 命中率 |
-|------|-----------|---------|-------|
-| 无扩展 | 341 | 1024 | 75% |
-| 有扩展 | 201 | 1024 | 84% |
+| Scenario | Per-turn uncached | Cache-read | Hit% |
+|----------|-------------------|------------|------|
+| Without | 341 | 1024 | 75% |
+| With | 201 | 1024 | 84% |
 
-### 提升
+### Improvement
 
-- 未命中 token 减少 **1289 个（25%）**
-- 稳定段命中率 **+9 pts**（75% → 84%）
-- 无功能受损
+- Uncached tokens reduced by **1289 (25%)**
+- Stable-segment hit rate **+9 pts** (75% → 84%)
+- No functional regression
 
-## 参考
+## References
 
-- DeepSeek-Reasonix: `TestReleaseCacheHitGuard` CI 门禁（90% 阈值）
-- pi-cache-optimizer（jiangge）: prompt reorder + skills 压缩 + churn strip
-- Anthropic prompt caching: `cache_control: { type: "ephemeral" }` 前缀匹配
+- DeepSeek-Reasonix: `TestReleaseCacheHitGuard` CI gate (90% threshold)
+- pi-cache-optimizer (jiangge): prompt reorder + skill compression + churn strip
+- Anthropic prompt caching: `cache_control: { type: "ephemeral" }` prefix matching

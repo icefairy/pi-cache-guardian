@@ -53,7 +53,7 @@ Pi auto-discovers and loads it. No settings changes required.
 ### Direct copy
 
 ```bash
-git clone https://github.com/icessssssssssss/pi-cache-guardian.git
+git clone https://github.com/icefairy/pi-skill-evolution.git
 cp pi-cache-guardian/extensions/cache-guardian.ts ~/.pi/agent/extensions/
 ```
 

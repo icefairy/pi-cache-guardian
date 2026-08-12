@@ -1,6 +1,6 @@
 {
   "name": "pi-cache-guardian",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Pi Agent extension that maximizes prompt-cache hit rate and reduces token cost",
   "keywords": [
     "pi-package",
@@ -24,19 +24,18 @@
   "license": "MIT",
   "author": "icefairy",
   "type": "module",
-  "main": "index.ts",
+  "main": "extensions/cache-guardian.ts",
   "files": [
-    "index.ts",
+    "extensions/",
     "LICENSE",
     "README.md",
     "README.zh-CN.md"
   ],
+  "pi": {
+    "extensions": ["./extensions"]
+  },
   "peerDependencies": {
     "@earendil-works/pi-coding-agent": ">=0.84.0"
   },
-  "scripts": {
-    "prepare": "npm run prepack",
-    "prepack": "cp extensions/cache-guardian.ts index.ts",
-    "postpack": "rm -f index.ts"
-  }
+  "scripts": {}
 }
